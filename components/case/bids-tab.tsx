@@ -1,12 +1,12 @@
 "use client";
 
 import { Gavel, Info, Radio } from "lucide-react";
-import { useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import { BIDS_BY_TENDER, TENDERS, TENDER_BY_ID, bidSpread, comparableStats, comparablesFor, medianComparableSpread } from "@/data/procurement";
 import { CATEGORY_BY_ID, DEPARTMENT_BY_ID, EVALUATION_LABEL, REGION_BY_ID } from "@/data/reference";
 import { ATTRIBUTE_RELATIONSHIPS } from "@/data/relationships";
 import { vendorName } from "@/data/vendors";
-import { formatDate, formatDateTime, formatINR, formatPct, minuteNumber } from "@/lib/format";
+import { addDays, daysBetween, formatDateShort, formatINR, formatPct, formatTime, minuteNumber } from "@/lib/format";
 import { useCaseView } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import type { Tender } from "@/types";
@@ -19,6 +19,7 @@ import { ComparableStrip } from "@/components/charts/comparable-strip";
 import { ParticipationMatrix } from "@/components/charts/participation-matrix";
 import { CHART } from "@/components/charts/theme";
 
+/** One lane per bid on a shared publication → deadline axis, so near-simultaneous submissions never overlap. */
 function SubmissionStrip({ tender }: { tender: Tender }) {
   const bids = [...(BIDS_BY_TENDER.get(tender.id) ?? [])].sort((a, b) => (a.submittedAt < b.submittedAt ? -1 : 1));
   if (bids.length < 2) return null;
@@ -29,32 +30,65 @@ function SubmissionStrip({ tender }: { tender: Tender }) {
     .slice(1)
     .map((bid, i) => ({ a: bids[i], b: bid, gap: minuteNumber(bid.submittedAt) - minuteNumber(bids[i].submittedAt) }))
     .filter((pair) => pair.gap <= 60);
+  const flagged = new Set(close.flatMap((pair) => [pair.a.id, pair.b.id]));
+  const days = daysBetween(tender.publishedOn, tender.bidDeadline);
+  const midnights = Array.from({ length: Math.max(0, days) }, (_, i) => addDays(tender.publishedOn, i + 1)).map((day) => ({
+    day,
+    at: pos(`${day}T00:00`),
+  }));
 
   return (
-    <div>
-      <div className="relative mx-2 mb-12 mt-10 h-px bg-line-strong">
-        <span className="absolute -top-6 left-0 whitespace-nowrap text-[11px] text-ink-3">Published {formatDate(tender.publishedOn)}</span>
-        <span className="absolute -top-6 right-0 whitespace-nowrap text-right text-[11px] text-ink-3">Deadline {formatDateTime(tender.bidDeadline)}</span>
-        <span className="absolute -left-1 -top-1 h-2 w-2 rounded-full bg-ink-3" />
-        <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-ink-3" />
-        {bids.map((bid, index) => {
-          const inClose = close.some((c) => c.a.id === bid.id || c.b.id === bid.id);
+    <div className="space-y-4">
+      <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-3 sm:grid-cols-[9.5rem_minmax(0,1fr)]">
+        <span aria-hidden />
+        <div className="flex justify-between gap-3 pb-1.5 text-[11px] text-ink-3">
+          <span>Published {formatDateShort(tender.publishedOn)}</span>
+          <span className="text-right">Deadline {formatDateShort(tender.bidDeadline)}, {formatTime(tender.bidDeadline)}</span>
+        </div>
+        {bids.map((bid) => {
           const at = pos(bid.submittedAt);
-          const align = at > 78 ? "right-0 text-right" : at < 22 ? "left-0 text-left" : "left-1/2 -translate-x-1/2 text-center";
+          const isClose = flagged.has(bid.id);
           return (
-            <div key={bid.id} className="absolute top-0" style={{ left: `${at}%` }}>
-              <span className={cn("absolute -top-[5px] left-0 h-[10px] w-[10px] -translate-x-1/2 rounded-full border-2 border-panel", inClose ? "bg-warn" : "bg-series-1")} />
-              <span className={cn("absolute w-24 text-[10.5px] leading-tight text-ink-2", align, index % 2 ? "top-3" : "top-7")}>
-                {vendorName(bid.vendorId).split(" ")[0]}
-                <span className="block tabular text-ink-3">{formatDateTime(bid.submittedAt).slice(0, 6)} {bid.submittedAt.slice(11)}</span>
-              </span>
-            </div>
+            <Fragment key={bid.id}>
+              <div className="flex h-9 min-w-0 items-center border-t border-line text-[13px] text-ink" title={vendorName(bid.vendorId)}>
+                <span className="truncate">{vendorName(bid.vendorId)}</span>
+              </div>
+              <div className="relative h-9 border-t border-line">
+                <span aria-hidden className="absolute inset-x-0 top-1/2 h-px bg-line-strong" />
+                {midnights.map((tick) => (
+                  <span key={tick.day} aria-hidden className="absolute inset-y-0 w-px bg-line" style={{ left: `${tick.at}%` }} />
+                ))}
+                <span
+                  aria-hidden
+                  className={cn("absolute top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-panel", isClose ? "bg-warn" : "bg-series-1")}
+                  style={{ left: `${at}%` }}
+                />
+                <span
+                  className={cn(
+                    "absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-[11px] tabular",
+                    at > 60 ? "-translate-x-full pr-3" : "pl-3",
+                    isClose ? "font-medium text-warn-ink" : "text-ink-2",
+                  )}
+                  style={{ left: `${at}%` }}
+                >
+                  {formatDateShort(bid.submittedAt)}, {formatTime(bid.submittedAt)}
+                </span>
+              </div>
+            </Fragment>
           );
         })}
+        <span aria-hidden />
+        <div className="relative h-5 border-t border-line text-[10.5px] text-ink-3">
+          {midnights.map((tick, index) => (
+            <span key={tick.day} className="absolute top-1 -translate-x-1/2 whitespace-nowrap tabular" style={{ left: `${tick.at}%` }}>
+              {index === 0 ? formatDateShort(tick.day) : tick.day.slice(8)}
+            </span>
+          ))}
+        </div>
       </div>
       {close.map((pair) => (
-        <p key={pair.b.id} className="flex items-center gap-2 text-[13px] text-warn-ink">
-          <Radio aria-hidden className="h-3.5 w-3.5" />
+        <p key={pair.b.id} className="flex items-start gap-2 text-[13px] leading-snug text-warn-ink">
+          <Radio aria-hidden className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           {vendorName(pair.a.vendorId)} and {vendorName(pair.b.vendorId)} submitted {pair.gap} minutes apart.
         </p>
       ))}
@@ -142,7 +176,7 @@ export function BidsTab({ caseId }: { caseId: string }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
         {tender.evaluation === "QCBS" && bids.length > 1 && (
           <Panel>
             <PanelHeader title="Quality-cum-cost evaluation" description="Combined score = 0.7 × technical + 0.3 × financial (lowest bid ÷ bid × 100)." />
@@ -166,7 +200,7 @@ export function BidsTab({ caseId }: { caseId: string }) {
                         <td className="px-4 py-2.5 text-ink">
                           {vendorName(bid.vendorId)} {bid.outcome === "WON" && <Badge tone="risk" className="ml-1">Winner</Badge>}
                         </td>
-                        <td className="px-4 py-2.5 text-right tabular text-ink-2">{formatINR(bid.amount)}</td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-right tabular text-ink-2">{formatINR(bid.amount)}</td>
                         <td className="px-4 py-2.5 text-right tabular text-ink-2">{bid.technicalScore}</td>
                         <td className="px-4 py-2.5 text-right tabular text-ink-2">{bid.financialScore?.toFixed(2)}</td>
                         <td className="px-4 py-2.5 text-right font-semibold tabular text-ink">{bid.combinedScore?.toFixed(2)}</td>
@@ -225,7 +259,7 @@ export function BidsTab({ caseId }: { caseId: string }) {
           </div>
 
           {stats.count ? (
-            <ComparableStrip stats={stats} comparables={comparables} current={tender} adjustedPct={adjustedPct} />
+            <ComparableStrip stats={stats} comparables={comparables} adjustedPct={adjustedPct} />
           ) : (
             <EmptyState title="No comparable procurements" description="Not enough awarded procurements match this category and size band." />
           )}

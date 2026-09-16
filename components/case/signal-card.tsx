@@ -55,6 +55,13 @@ export function TrustPanel({ signal }: { signal: AnomalySignal }) {
   );
 }
 
+/** Stretch the last cell of a hairline metric grid (2 cols, 3 from sm) so no empty cell shows through. */
+function fillSpan(count: number) {
+  const base = count % 2 === 1 ? "col-span-2" : "col-span-1";
+  const sm = ["sm:col-span-1", "sm:col-span-3", "sm:col-span-2"][count % 3];
+  return `${base} ${sm}`;
+}
+
 export function SignalExplanationCard({
   signal,
   caseId,
@@ -102,8 +109,8 @@ export function SignalExplanationCard({
         <p className="text-[15px] leading-relaxed text-ink">{signal.headline}</p>
 
         <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[5px] border border-line bg-line sm:grid-cols-3">
-          {metrics.map((metric) => (
-            <div key={metric.label} className="bg-panel-2 px-3 py-2.5">
+          {metrics.map((metric, i) => (
+            <div key={metric.label} className={cn("bg-panel-2 px-3 py-2.5", i === metrics.length - 1 && fillSpan(metrics.length))}>
               <dt className="text-[11px] text-ink-3">{metric.label}</dt>
               <dd className="mt-0.5 truncate text-[15px] font-semibold tabular text-ink" title={metric.value}>
                 {metric.value}

@@ -105,12 +105,10 @@ export function AssistantTab({ caseId }: { caseId: string }) {
   const clearAI = useAegis((s) => s.clearAI);
   const log = useAegis((s) => s.log);
   const [input, setInput] = useState("");
-  const [pending, setPending] = useState<{ intent: AIIntent; steps: string[]; step: number } | null>(null);
+  const [pending, setPending] = useState<{ analysis: AIAnalysis; steps: string[]; step: number } | null>(null);
   const [freshId, setFreshId] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
-  const contextRef = useRef<AssistantContext | null>(null);
-
-  contextRef.current = view
+  const context: AssistantContext | null = view
     ? {
         investigation: view.investigation,
         score: view.score,
@@ -128,19 +126,19 @@ export function AssistantTab({ caseId }: { caseId: string }) {
 
   useEffect(() => {
     if (!pending) return;
-    if (pending.step >= pending.steps.length) {
-      const ctx = contextRef.current;
-      if (ctx) {
-        const analysis = runAssistant(pending.intent, ctx);
-        const id = uid("AI");
-        addMessage(caseId, { id, role: "ASSISTANT", text: analysis.lead, analysis, createdAt: nowIST() });
-        log({ action: "AI analysis generated", target: caseId, detail: analysis.title, actor: "Investigation assistant", actorKind: "AI" });
-        setFreshId(id);
+    const finished = pending.step >= pending.steps.length;
+    const timer = window.setTimeout(() => {
+      if (!finished) {
+        setPending({ ...pending, step: pending.step + 1 });
+        return;
       }
+      const { analysis } = pending;
+      const id = uid("AI");
+      addMessage(caseId, { id, role: "ASSISTANT", text: analysis.lead, analysis, createdAt: nowIST() });
+      log({ action: "AI analysis generated", target: caseId, detail: analysis.title, actor: "Investigation assistant", actorKind: "AI" });
+      setFreshId(id);
       setPending(null);
-      return;
-    }
-    const timer = window.setTimeout(() => setPending((p) => (p ? { ...p, step: p.step + 1 } : p)), 420);
+    }, finished ? 240 : 420);
     return () => window.clearTimeout(timer);
   }, [pending, caseId, addMessage, log]);
 
@@ -148,11 +146,11 @@ export function AssistantTab({ caseId }: { caseId: string }) {
 
   const ask = (question: string, intent?: AIIntent) => {
     const text = question.trim();
-    if (!text || pending || !contextRef.current) return;
+    if (!text || pending || !context) return;
     const resolved = intent ?? detectIntent(text);
     addMessage(caseId, { id: uid("Q"), role: "INVESTIGATOR", text, createdAt: nowIST() });
     setInput("");
-    setPending({ intent: resolved, steps: progressSteps(resolved, contextRef.current), step: 0 });
+    setPending({ analysis: runAssistant(resolved, context), steps: progressSteps(resolved, context), step: 0 });
   };
 
   return (
@@ -165,7 +163,7 @@ export function AssistantTab({ caseId }: { caseId: string }) {
               <Button
                 key={action.intent}
                 variant="secondary"
-                className="w-full justify-start uppercase tracking-[0.04em]"
+                className="h-auto min-h-8 w-full justify-start whitespace-normal py-1.5 text-left uppercase leading-tight tracking-[0.04em]"
                 size="sm"
                 disabled={Boolean(pending)}
                 onClick={() => ask(action.prompt, action.intent)}

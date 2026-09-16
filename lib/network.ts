@@ -155,7 +155,30 @@ export function getNetwork(): NetworkGraph {
   return cached;
 }
 
-/** Deterministic Fruchterman–Reingold layout, computed once. */
+const subgraphCache = new Map<string, NetworkGraph>();
+
+/**
+ * A self-contained graph of just `ids`, laid out on its own. A cluster that is a
+ * small knot inside the full network fills its canvas instead of shrinking to a dot.
+ */
+export function subgraph(graph: NetworkGraph, ids: Set<string>): NetworkGraph {
+  const key = [...ids].sort().join("|");
+  const hit = subgraphCache.get(key);
+  if (hit) return hit;
+  const nodes = graph.nodes.filter((node) => ids.has(node.id));
+  const edges = graph.edges.filter((edge) => ids.has(edge.source) && ids.has(edge.target));
+  const adjacency = new Map(nodes.map((node) => [node.id, new Set<string>()]));
+  for (const edge of edges) {
+    adjacency.get(edge.source)!.add(edge.target);
+    adjacency.get(edge.target)!.add(edge.source);
+  }
+  const positioned = layout(nodes, edges, adjacency);
+  const result: NetworkGraph = { nodes: positioned, edges, nodeById: new Map(positioned.map((n) => [n.id, n])), adjacency };
+  subgraphCache.set(key, result);
+  return result;
+}
+
+/** Deterministic Fruchterman–Reingold layout, computed once per graph. */
 function layout(
   raw: Omit<NetworkNode, "x" | "y" | "degree">[],
   edges: NetworkEdge[],

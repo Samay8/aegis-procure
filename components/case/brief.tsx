@@ -7,7 +7,7 @@ import { BIDS_BY_TENDER, TENDER_BY_ID, comparableStats } from "@/data/procuremen
 import { CATEGORY_BY_ID, CURRENT_INVESTIGATOR, DEPARTMENT_BY_ID, INVESTIGATOR_BY_ID, OUTCOME_META, REGION_BY_ID, RELATIONSHIP_TYPE_META, STATUS_META, SYNTHETIC_NOTICE } from "@/data/reference";
 import { RELATIONSHIPS } from "@/data/relationships";
 import { vendorName } from "@/data/vendors";
-import { formatDate, formatDateTime, formatINR, formatPct, nowIST } from "@/lib/format";
+import { formatDate, formatDateTime, formatINR, formatPct, keepDashAttached, nowIST } from "@/lib/format";
 import { useCaseView } from "@/lib/hooks";
 import { buildTimeline } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
@@ -110,7 +110,7 @@ export function InvestigationBrief({ caseId, standalone }: { caseId: string; sta
               <span className="text-xs font-bold tracking-[0.18em] text-ink [font-stretch:125%]">AEGIS PROCURE</span>
             </div>
             <div className="type-label mt-5">Investigation brief · decision support</div>
-            <h1 className="type-display mt-2 text-[30px] uppercase leading-none text-ink sm:text-[38px]">{investigation.title}</h1>
+            <h1 className="type-display mt-2 text-[30px] uppercase leading-none text-ink sm:text-[38px]">{keepDashAttached(investigation.title)}</h1>
             <div className="mt-2 font-mono text-xs text-ink-3">
               {investigation.id} · {investigation.tenderId}
             </div>

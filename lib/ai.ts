@@ -280,17 +280,26 @@ export function runAssistant(intent: AIIntent, ctx: AssistantContext): AIAnalysi
     case "GENERATE_QUESTIONS": {
       const excluded = new Set(Object.entries(ctx.feedback).filter(([, f]) => f === "NOT_RELEVANT").map(([id]) => id));
       const authored = investigation.questions.map((q) => ({ text: q.text, refs: q.evidenceIds.slice(0, 2) }));
-      const generated = activeSignals(ctx)
+      // Signal actions are imperatives ("Compare the priced bill…"): kept as statements when listed as
+      // next steps, and rephrased only when they have to stand in for questions.
+      const followUps = activeSignals(ctx)
         .filter((s) => !excluded.has(s.id))
         .slice(0, 3)
-        .map((s) => ({ text: `${s.recommendedAction.replace(/\.$/, "")}?`.replace(/^(\w)/, (m) => m.toUpperCase()), refs: [s.id] }))
-        .filter((q) => !authored.some((a) => a.text === q.text));
+        .map((s) => ({ action: s.recommendedAction.replace(/\.$/, ""), refs: [s.id] }));
+      const asQuestion = (action: string) =>
+        `Should the review ${/^[A-Z][a-z]/.test(action) ? action[0].toLowerCase() + action.slice(1) : action}?`;
       return base(
         "Potential investigation questions",
         "Each question would confirm or rule out a signal, and names the evidence it tests. Add the ones you intend to pursue to the workspace checklist.",
         [
-          { kind: "QUESTIONS", title: "Questions", items: authored.length ? authored : generated },
-          ...(authored.length && generated.length ? [{ kind: "NEXT_STEPS" as const, title: "Follow-ups drawn from signal actions", items: generated }] : []),
+          {
+            kind: "QUESTIONS",
+            title: "Questions",
+            items: authored.length ? authored : followUps.map((f) => ({ text: asQuestion(f.action), refs: f.refs })),
+          },
+          ...(authored.length && followUps.length
+            ? [{ kind: "NEXT_STEPS" as const, title: "Follow-ups drawn from signal actions", items: followUps.map((f) => ({ text: `${f.action}.`, refs: f.refs })) }]
+            : []),
           {
             kind: "INTERPRETATION",
             title: "Why these questions",

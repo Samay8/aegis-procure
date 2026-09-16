@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { vendorName } from "@/data/vendors";
 import { formatDate, formatINR, formatPct } from "@/lib/format";
 import type { ComparableStats } from "@/data/procurement";
@@ -17,12 +17,10 @@ import { useElementWidth } from "./chart-tooltip";
 export function ComparableStrip({
   stats,
   comparables,
-  current,
   adjustedPct,
 }: {
   stats: ComparableStats;
   comparables: Tender[];
-  current: Tender;
   adjustedPct?: number | null;
 }) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
@@ -31,34 +29,28 @@ export function ComparableStrip({
   const padX = 18;
 
   const adjustedValue = adjustedPct != null ? stats.median * (1 + adjustedPct / 100) : null;
-  const domain = useMemo(() => {
-    const values = [...stats.values, stats.current, ...(adjustedValue ? [adjustedValue] : [])];
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const pad = (max - min) * 0.08 || max * 0.1;
-    return [min - pad, max + pad] as const;
-  }, [stats, adjustedValue]);
+  // Eighteen-odd points: cheap enough to derive on every render.
+  const values = [...stats.values, stats.current, ...(adjustedValue ? [adjustedValue] : [])];
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const domainPad = (maxValue - minValue) * 0.08 || maxValue * 0.1;
+  const domain = [minValue - domainPad, maxValue + domainPad] as const;
 
   const x = (value: number) => padX + ((value - domain[0]) / (domain[1] - domain[0])) * Math.max(1, width - padX * 2);
 
-  const placed = useMemo(() => {
-    const rows: number[][] = [[], [], [], []];
-    return [...comparables]
-      .sort((a, b) => (a.awardValue ?? 0) - (b.awardValue ?? 0))
-      .map((tender) => {
-        const px = x(tender.awardValue ?? 0);
-        let row = rows.findIndex((occupied) => occupied.every((o) => Math.abs(o - px) > 13));
-        if (row === -1) row = 0;
-        rows[row].push(px);
-        return { tender, px, row };
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comparables, width, domain]);
+  const lanes: number[][] = [[], [], [], []];
+  const placed = [...comparables]
+    .sort((a, b) => (a.awardValue ?? 0) - (b.awardValue ?? 0))
+    .map((tender) => {
+      const px = x(tender.awardValue ?? 0);
+      let row = lanes.findIndex((occupied) => occupied.every((o) => Math.abs(o - px) > 13));
+      if (row === -1) row = 0;
+      lanes[row].push(px);
+      return { tender, px, row };
+    });
 
-  const ticks = useMemo(() => {
-    const count = width < 420 ? 3 : 5;
-    return Array.from({ length: count }, (_, i) => domain[0] + ((domain[1] - domain[0]) * (i + 0.5)) / count);
-  }, [domain, width]);
+  const tickCount = width < 420 ? 3 : 5;
+  const ticks = Array.from({ length: tickCount }, (_, i) => domain[0] + ((domain[1] - domain[0]) * (i + 0.5)) / tickCount);
 
   const baseY = 116;
 

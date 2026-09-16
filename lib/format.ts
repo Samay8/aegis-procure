@@ -137,3 +137,8 @@ export function relativeTime(iso: string, nowIso: string) {
   if (days < 30) return `${days} days ago`;
   return formatDate(iso);
 }
+
+/** Glue a spaced em dash to the word before it, so a wrapped headline never starts a line with "—". */
+export function keepDashAttached(text: string) {
+  return text.replaceAll(" — ", "\u00a0— ");
+}

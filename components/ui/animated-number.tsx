@@ -1,7 +1,7 @@
 "use client";
 
 import { animate, useInView, useReducedMotion } from "framer-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
 
 /** Counts toward a value once visible; re-animates from the previous value when it changes. */
@@ -23,7 +23,7 @@ export function AnimatedNumber({
   const inView = useInView(ref, { once: true, margin: "0px 0px -8% 0px" });
   const previous = useRef<number | null>(null);
   const formatRef = useRef(format);
-  const initial = useRef(startOnView ? 0 : value);
+  const [initial] = useState(() => (startOnView ? 0 : value));
 
   useEffect(() => {
     formatRef.current = format;
@@ -38,7 +38,7 @@ export function AnimatedNumber({
       return;
     }
     if (startOnView && !inView) return;
-    const from = previous.current ?? initial.current;
+    const from = previous.current ?? initial;
     if (from === value) {
       node.textContent = formatRef.current(value);
       previous.current = value;
@@ -53,11 +53,11 @@ export function AnimatedNumber({
     });
     previous.current = value;
     return () => controls.stop();
-  }, [value, inView, reduce, duration, startOnView]);
+  }, [value, inView, reduce, duration, startOnView, initial]);
 
   return (
     <span ref={ref} className={className}>
-      {format(initial.current)}
+      {format(initial)}
     </span>
   );
 }

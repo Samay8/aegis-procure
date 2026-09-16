@@ -4,7 +4,6 @@ import { median } from "../lib/utils";
 import {
   AWARDED_TENDERS,
   BIDS,
-  BIDS_BY_VENDOR,
   CONTRACTS,
   CONTRACTS_BY_VENDOR,
   PAYMENTS,
@@ -15,7 +14,6 @@ import {
   bidSpread,
   bidWindowDays,
   comparableStats,
-  comparablesFor,
   medianComparableSpread,
   tendersForVendor,
 } from "../data/procurement";

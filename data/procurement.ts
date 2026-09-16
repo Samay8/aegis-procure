@@ -14,7 +14,7 @@ import type {
   Tender,
   TenderStatus,
 } from "@/types";
-import { REGION_BY_ID, REGIONS } from "./reference";
+import { REGION_BY_ID } from "./reference";
 import { CASE_CONTRACT, CASE_TENDER, CLUSTER_VENDORS, STORY_TENDERS, type TenderSeed } from "./story";
 import { V, VENDORS, VENDOR_BY_ID } from "./vendors";
 
@@ -571,7 +571,7 @@ const PAYMENT_OVERRIDES: Record<string, (value: number, startOn: string) => Paym
     { type: "RUNNING_BILL", amount: 600_000, invoiceOn: addDays(startOn, 210), daysToPay: 14, certified: true, invoiceNo: "CFS/2026/0461" },
     { type: "RUNNING_BILL", amount: 600_000, invoiceOn: addDays(startOn, 268), daysToPay: 12, certified: true, invoiceNo: "CFS/2026/0488" },
   ],
-  [CASE_TENDER]: (value, startOn) => [
+  [CASE_TENDER]: (value) => [
     {
       id: "PAY-2026-11873",
       type: "ADVANCE",

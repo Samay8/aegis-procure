@@ -88,7 +88,6 @@ export function TimelineTab({ caseId }: { caseId: string }) {
   const pos = (iso: string) => ((minuteNumber(iso) - start) / Math.max(1, end - start)) * 100;
   const unusual = procurement.filter((r) => r.unusual).length;
 
-  let lastDate = "";
 
   return (
     <div className="space-y-6">
@@ -142,9 +141,7 @@ export function TimelineTab({ caseId }: { caseId: string }) {
 
       <ol className="relative">
         {rows.map((event, index) => {
-          const date = event.at.slice(0, 10);
-          const showDate = date !== lastDate;
-          lastDate = date;
+          const showDate = index === 0 || event.at.slice(0, 10) !== rows[index - 1].at.slice(0, 10);
           return (
             <motion.li
               key={event.id}

@@ -18,7 +18,7 @@ import {
 import type { ReactNode } from "react";
 import { CATEGORY_BY_ID, DEPARTMENT_BY_ID, INVESTIGATOR_BY_ID, REGION_BY_ID } from "@/data/reference";
 import { vendorName } from "@/data/vendors";
-import { formatCr, formatDate } from "@/lib/format";
+import { formatCr, formatDate, keepDashAttached } from "@/lib/format";
 import { useCaseView } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 import { useAegis } from "@/store/aegis";
@@ -85,7 +85,7 @@ export function CaseFrame({ caseId, children }: { caseId: string; children: Reac
             <StatusBadge status={state.status} />
             {investigation.userCreated && <span className="text-xs text-accent-ink">Opened from a signal</span>}
           </div>
-          <h1 className="type-display mt-3 text-[30px] uppercase text-ink sm:text-[42px]">{investigation.title}</h1>
+          <h1 className="type-display mt-3 text-[30px] uppercase text-ink sm:text-[42px]">{keepDashAttached(investigation.title)}</h1>
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[13px] text-ink-2">
             {investigation.tenderId && <RecordChip id={investigation.tenderId} />}
             <span>{DEPARTMENT_BY_ID[investigation.departmentId].name}</span>
@@ -140,7 +140,7 @@ export function CaseFrame({ caseId, children }: { caseId: string; children: Reac
       <div className="sticky top-14 z-10 -mx-4 bg-ground/95 px-4 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
         <div className="flex items-center gap-4">
           <LinkTabs items={tabs} className="min-w-0 flex-1" layoutId={`case-tabs-${investigation.id}`} />
-          <div className="hidden shrink-0 items-center gap-2 border-b border-line pb-[9px] pt-2.5 text-xs text-ink-3 xl:flex">
+          <div className="hidden shrink-0 items-center gap-2 border-b border-line pb-[9px] pt-2.5 text-xs text-ink-3 2xl:flex">
             <span className="font-mono">{investigation.id}</span>
             <span className={cn("type-title tabular text-base", score.level === "MEDIUM" ? "text-warn-ink" : score.level === "LOW" ? "text-slate-ink" : "text-risk-ink")}>
               {score.total}

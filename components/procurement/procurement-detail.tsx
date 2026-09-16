@@ -6,7 +6,7 @@ import { BIDS_BY_TENDER, CONTRACT_BY_TENDER, PAYMENTS_BY_CONTRACT, TENDER_BY_ID,
 import { CATEGORY_BY_ID, DEPARTMENT_BY_ID, EVALUATION_LABEL, METHOD_LABEL, REGION_BY_ID, TENDER_STATUS_META } from "@/data/reference";
 import { caseForTender } from "@/data/cases";
 import { vendorName } from "@/data/vendors";
-import { formatDate, formatDateTime, formatINR, formatPct } from "@/lib/format";
+import { formatDate, formatDateTime, formatINR, formatPct, keepDashAttached } from "@/lib/format";
 import { useCaseView } from "@/lib/hooks";
 import { buildTimeline } from "@/lib/timeline";
 import { cn } from "@/lib/utils";
@@ -88,7 +88,7 @@ export function ProcurementDetail({ tenderId }: { tenderId: string }) {
             <Badge tone={TENDER_STATUS_META[tender.status].tone}>{TENDER_STATUS_META[tender.status].label}</Badge>
             {signals.length > 0 && <Badge tone="risk">{signals.length} signals</Badge>}
           </div>
-          <h1 className="type-display mt-3 text-[30px] uppercase text-ink sm:text-[42px]">{tender.title}</h1>
+          <h1 className="type-display mt-3 text-[30px] uppercase text-ink sm:text-[42px]">{keepDashAttached(tender.title)}</h1>
           <SyntheticNotice compact className="mt-3" />
         </div>
         <button
@@ -191,7 +191,7 @@ export function ProcurementDetail({ tenderId }: { tenderId: string }) {
                   <Stat label="P75" value={formatINR(stats.p75)} />
                   <Stat label="Deviation" value={formatPct(stats.deviationPct, 1, true)} />
                 </div>
-                {stats.count ? <ComparableStrip stats={stats} comparables={comparables} current={tender} /> : <EmptyState title="No comparable procurements" />}
+                {stats.count ? <ComparableStrip stats={stats} comparables={comparables} /> : <EmptyState title="No comparable procurements" />}
               </PanelBody>
             </Panel>
           )}

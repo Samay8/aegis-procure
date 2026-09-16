@@ -102,7 +102,12 @@ function ImportPanel() {
 
   useEffect(() => {
     if (stage.kind !== "analyzing") return;
-    if (stage.step >= PIPELINE.length) {
+    const finished = stage.step >= PIPELINE.length;
+    const timer = window.setTimeout(() => {
+      if (!finished) {
+        setStage({ ...stage, step: stage.step + 1 });
+        return;
+      }
       const importId = uid("IMP");
       const signals = analyseImport(stage.preview, importId);
       addImport(
@@ -120,9 +125,7 @@ function ImportPanel() {
         signals,
       );
       setStage({ kind: "done", preview: stage.preview, signals });
-      return;
-    }
-    const timer = window.setTimeout(() => setStage({ ...stage, step: stage.step + 1 }), 650);
+    }, finished ? 280 : 650);
     return () => window.clearTimeout(timer);
   }, [stage, addImport]);
 

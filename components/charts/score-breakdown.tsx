@@ -12,14 +12,18 @@ import { CHART } from "./theme";
  * with any reduction from context or feedback shown as a hatched remainder.
  */
 export function ScoreTrack({ score, className }: { score: ScoreResult; className?: string }) {
-  let offset = 0;
   const reduction = Math.max(0, score.base - score.computed);
+  const lefts: number[] = [];
+  let running = 0;
+  for (const factor of score.factors) {
+    lefts.push(running);
+    running += factor.current;
+  }
   return (
     <div className={cn("relative", className)}>
       <div className="relative h-4 w-full overflow-hidden rounded-[3px] bg-panel-3" role="img" aria-label={`Score ${score.total} of 100 built from ${score.factors.length} factors`}>
         {score.factors.map((factor, index) => {
-          const left = offset;
-          offset += factor.current;
+          const left = lefts[index];
           if (factor.current <= 0) return null;
           return (
             <motion.div

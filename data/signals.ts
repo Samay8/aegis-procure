@@ -14,7 +14,6 @@ import {
   bidWindowDays,
   comparableStats,
   medianComparableSpread,
-  tendersForVendor,
 } from "./procurement";
 import {
   CASE_TENDER,
@@ -1435,7 +1434,7 @@ function detectConcentration(count: number): AnomalySignal[] {
 
   return candidates.map((c, index) => {
     const [departmentId, categoryId] = c.key.split("|");
-    const tender = CONTRACTS.find((x) => x.vendorId === c.vendorId && x.departmentId === departmentId)!;
+    const tender = CONTRACTS.find((x) => x.vendorId === c.vendorId && x.departmentId === departmentId && x.categoryId === categoryId)!;
     return makeSignal({
       id: `SIG-2026-02${String(41 + index).padStart(2, "0")}`,
       type: "VENDOR_CONCENTRATION",

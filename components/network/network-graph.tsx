@@ -4,7 +4,7 @@ import { Maximize2, Minus, Plus, Tags } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import type { NetworkFilterId } from "@/data/reference";
 import { RELATIONSHIP_BY_ID } from "@/data/relationships";
-import { edgeVisible, neighborhood, type NetworkGraph } from "@/lib/network";
+import { edgeVisible, neighborhood, subgraph, type NetworkGraph } from "@/lib/network";
 import { cn } from "@/lib/utils";
 import type { EntityKind, NetworkEdge, NetworkNode } from "@/types";
 
@@ -116,8 +116,22 @@ export interface NetworkGraphProps {
   className?: string;
 }
 
+/** The view that frames a set of nodes inside the canvas, or null before the canvas has a size. */
+function fitView(list: NetworkNode[], width: number, height: number): View | null {
+  if (!width || !list.length) return null;
+  const xs = list.map((n) => n.x);
+  const ys = list.map((n) => n.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const pad = 70;
+  const k = Math.max(0.25, Math.min(2.2, Math.min((width - pad * 2) / Math.max(1, maxX - minX), (height - pad * 2) / Math.max(1, maxY - minY))));
+  return { k, x: width / 2 - ((minX + maxX) / 2) * k, y: height / 2 - ((minY + maxY) / 2) * k };
+}
+
 export function NetworkGraphView({
-  graph,
+  graph: fullGraph,
   filters,
   selectedId,
   onSelect,
@@ -130,13 +144,14 @@ export function NetworkGraphView({
   height = 620,
   className,
 }: NetworkGraphProps) {
+  // A restricted view gets its own layout so the cluster fills the canvas.
+  const graph = useMemo(() => (restrictTo ? subgraph(fullGraph, restrictTo) : fullGraph), [fullGraph, restrictTo]);
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(0);
   const [view, setView] = useState<View>({ x: 0, y: 0, k: 0.5 });
   const [showLabels, setShowLabels] = useState(true);
   const [hoverId, setHoverId] = useState<string | null>(null);
-  const fitted = useRef(false);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const pan = useRef<{ x: number; y: number; vx: number; vy: number; moved: boolean } | null>(null);
   const pinch = useRef<{ dist: number; k: number; mx: number; my: number; vx: number; vy: number } | null>(null);
@@ -165,14 +180,30 @@ export function NetworkGraphView({
     return ids;
   }, [graph, filters, visibleEdges, restrictTo, selectedId]);
 
+  // A relationship can span several edges (vendor → shared address ← vendor); selecting one selects the whole path.
+  const selectedRelationshipId = useMemo(
+    () => (selectedEdgeId ? graph.edges.find((e) => e.id === selectedEdgeId)?.relationshipId ?? null : null),
+    [graph, selectedEdgeId],
+  );
+
   const highlight = useMemo(() => {
     if (selectedEdgeId) {
       const edge = graph.edges.find((e) => e.id === selectedEdgeId);
-      if (edge) return new Set([edge.source, edge.target]);
+      if (edge) {
+        const ids = new Set([edge.source, edge.target]);
+        if (selectedRelationshipId) {
+          for (const sibling of graph.edges) {
+            if (sibling.relationshipId !== selectedRelationshipId) continue;
+            ids.add(sibling.source);
+            ids.add(sibling.target);
+          }
+        }
+        return ids;
+      }
     }
     if (!selectedId) return null;
     return neighborhood(graph, selectedId, visibleEdges, depth);
-  }, [graph, selectedId, selectedEdgeId, visibleEdges, depth]);
+  }, [graph, selectedId, selectedEdgeId, selectedRelationshipId, visibleEdges, depth]);
 
   const nodes = useMemo(
     () => graph.nodes.filter((n) => visibleNodeIds.has(n.id) && (!hideUnrelated || !highlight || highlight.has(n.id))),
@@ -192,43 +223,33 @@ export function NetworkGraphView({
 
   const fitTo = useCallback(
     (list: NetworkNode[]) => {
-      if (!width || !list.length) return;
-      const xs = list.map((n) => n.x);
-      const ys = list.map((n) => n.y);
-      const minX = Math.min(...xs);
-      const maxX = Math.max(...xs);
-      const minY = Math.min(...ys);
-      const maxY = Math.max(...ys);
-      const pad = 70;
-      const k = Math.max(0.25, Math.min(2.2, Math.min((width - pad * 2) / Math.max(1, maxX - minX), (height - pad * 2) / Math.max(1, maxY - minY))));
-      setView({ k, x: width / 2 - ((minX + maxX) / 2) * k, y: height / 2 - ((minY + maxY) / 2) * k });
+      const next = fitView(list, width, height);
+      if (next) setView(next);
     },
     [width, height],
   );
 
-  useEffect(() => {
-    if (!width) return;
-    if (!fitted.current) {
-      fitted.current = true;
-      fitTo(nodes);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [width]);
+  // Frame the graph once the canvas has a width, and again whenever the visible set is re-filtered.
+  // Adjusted during render rather than in an effect, so the unframed view never paints.
+  const [framedFor, setFramedFor] = useState<{ filters: typeof filters; restrictTo: typeof restrictTo; hideUnrelated: boolean } | null>(null);
+  if (width && (!framedFor || framedFor.filters !== filters || framedFor.restrictTo !== restrictTo || framedFor.hideUnrelated !== hideUnrelated)) {
+    setFramedFor({ filters, restrictTo, hideUnrelated });
+    const next = fitView(nodes, width, height);
+    if (next) setView(next);
+  }
 
-  useEffect(() => {
-    if (fitted.current) fitTo(nodes);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, restrictTo, hideUnrelated]);
-
-  useEffect(() => {
-    if (!focusRequest || !width) return;
+  // Center on a node when a caller requests focus; every request carries a fresh nonce.
+  const [focusedFor, setFocusedFor] = useState<typeof focusRequest>(null);
+  if (width && focusRequest && focusRequest !== focusedFor) {
+    setFocusedFor(focusRequest);
     const node = graph.nodeById.get(focusRequest.id);
-    if (!node) return;
-    setView((current) => {
-      const k = Math.max(current.k, 1.1);
-      return { k, x: width * 0.45 - node.x * k, y: height / 2 - node.y * k };
-    });
-  }, [focusRequest, graph, width, height]);
+    if (node) {
+      setView((current) => {
+        const k = Math.max(current.k, 1.1);
+        return { k, x: width * 0.45 - node.x * k, y: height / 2 - node.y * k };
+      });
+    }
+  }
 
   /* ---------------- zoom + pan ---------------- */
   const zoomAt = useCallback((factor: number, sx: number, sy: number) => {
@@ -327,7 +348,9 @@ export function NetworkGraphView({
   /* ---------------- render ---------------- */
   const sx = (x: number) => x * view.k + view.x;
   const sy = (y: number) => y * view.k + view.y;
-  const growth = Math.max(0.8, Math.min(1.6, Math.pow(view.k, 0.35)));
+  // Small clusters are read entity by entity: larger marks, and labels without zooming in.
+  const compact = nodes.length <= 32;
+  const growth = Math.max(compact ? 1 : 0.8, Math.min(1.6, Math.pow(view.k, 0.35)));
   const nodeById = graph.nodeById;
 
   return (
@@ -357,7 +380,7 @@ export function NetworkGraphView({
               const b = nodeById.get(edge.target)!;
               const style = edgeStyle(edge);
               const active = highlight ? highlight.has(edge.source) && highlight.has(edge.target) : true;
-              const selected = edge.id === selectedEdgeId;
+              const selected = edge.id === selectedEdgeId || (selectedRelationshipId !== null && edge.relationshipId === selectedRelationshipId);
               const clickable = Boolean(edge.relationshipId);
               return (
                 <g key={edge.id}>
@@ -406,7 +429,7 @@ export function NetworkGraphView({
                 (showLabels &&
                   ((highlight && highlight.has(node.id) && (node.kind === "VENDOR" || node.kind === "ADDRESS" || node.kind === "DIRECTOR" || node.kind === "TENDER")) ||
                     (!highlight && node.kind === "VENDOR" && (node.flagged || node.degree >= 6)) ||
-                    (!highlight && view.k >= 1.35 && node.kind !== "CONTRACT")));
+                    (!highlight && (view.k >= 1.35 || compact) && node.kind !== "CONTRACT")));
               const x = sx(node.x);
               const y = sy(node.y);
               if (x < -80 || y < -40 || x > width + 80 || y > height + 40) return null;

@@ -132,7 +132,7 @@ function buildFlow() {
 }
 
 export function HeroNetwork() {
-  const { nodes, edges } = useMemo(buildFlow, []);
+  const { nodes, edges } = useMemo(() => buildFlow(), []);
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const [active, setActive] = useState<string>(V.vertex);
   const card = byId.get(active);

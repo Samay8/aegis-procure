@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Equal, Plus, Radio, Scale } from "lucide-react";
+import { ArrowRight, Equal, Radio, Scale } from "lucide-react";
 import { SIGNAL_BY_ID } from "@/data/signals";
 import { NEXT_PACKAGE_TENDER, PRIMARY_CASE } from "@/data/story";
 import { TENDER_BY_ID } from "@/data/procurement";
@@ -26,56 +26,40 @@ function EvidenceLayers({ caseId }: { caseId: string }) {
   const hasContext = investigation.contextChecks.length > 0;
 
   return (
-    <div className="overflow-x-auto">
-      <ol className="flex min-w-max items-stretch gap-1.5">
-        {score.factors.map((factor, index) => (
-          <li key={factor.id} className="flex items-stretch gap-1.5">
-            {index > 0 && (
-              <span aria-hidden className="flex items-center text-ink-3">
-                <Plus className="h-3.5 w-3.5" />
-              </span>
-            )}
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.07 }}
-              className="flex w-[118px] flex-col justify-between rounded-[5px] border border-line bg-panel-2 px-3 py-2.5"
-            >
-              <span className="text-[10.5px] font-semibold uppercase leading-tight tracking-[0.08em] text-ink-2">{factor.label}</span>
-              <span className="mt-2 flex items-center gap-1.5">
-                <span aria-hidden className="h-2 w-2 rounded-[2px]" style={{ background: CHART.series[index % 8] }} />
-                <span className={cn("type-title tabular text-xl", factor.current !== factor.base ? "text-ok-ink" : "text-ink")}>+{factor.current}</span>
-              </span>
-            </motion.div>
-          </li>
-        ))}
-        <li className="flex items-stretch gap-1.5">
-          <span aria-hidden className="flex items-center text-ink-3">
-            <Plus className="h-3.5 w-3.5" />
+    <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {score.factors.map((factor, index) => (
+        <motion.li
+          key={factor.id}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.07 }}
+          className="flex min-h-[86px] flex-col justify-between rounded-[5px] border border-line bg-panel-2 px-3 py-2.5"
+        >
+          <span className="text-[10.5px] font-semibold uppercase leading-tight tracking-[0.08em] text-ink-2">{factor.label}</span>
+          <span className="mt-2 flex items-baseline gap-1.5">
+            <span aria-hidden className="h-2 w-2 self-center rounded-[2px]" style={{ background: CHART.series[index % 8] }} />
+            <span className={cn("type-title tabular text-xl", factor.current !== factor.base ? "text-ok-ink" : "text-ink")}>+{factor.current}</span>
+            {factor.current !== factor.base && <span className="text-[11px] tabular text-ink-3 line-through">+{factor.base}</span>}
           </span>
-          <div className={cn("flex w-[128px] flex-col justify-between rounded-[5px] border px-3 py-2.5", reduction > 0 ? "border-ok/40 bg-ok/[0.07]" : "border-dashed border-line-strong")}>
-            <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink-2">
-              <Scale className="h-3 w-3" /> Contextual analysis
-            </span>
-            <span className={cn("type-title mt-2 tabular text-xl", reduction > 0 ? "text-ok-ink" : "text-ink-3")}>
-              {reduction > 0 ? `−${reduction}` : hasContext ? "available" : "none"}
-            </span>
-          </div>
-        </li>
-        <li className="flex items-stretch gap-1.5">
-          <span aria-hidden className="flex items-center text-ink-3">
-            <Equal className="h-3.5 w-3.5" />
-          </span>
-          <div className="flex w-[150px] flex-col justify-between rounded-[5px] border border-risk/40 bg-risk/[0.08] px-3 py-2.5">
-            <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-risk-ink">Investigation priority</span>
-            <span className="mt-2 flex items-baseline gap-1">
-              <AnimatedNumber value={score.total} startOnView={false} className="type-display tabular text-3xl text-ink" />
-              <span className="text-xs text-ink-3">/100</span>
-            </span>
-          </div>
-        </li>
-      </ol>
-    </div>
+        </motion.li>
+      ))}
+      <li className={cn("flex min-h-[86px] flex-col justify-between rounded-[5px] border px-3 py-2.5", reduction > 0 ? "border-ok/40 bg-ok/[0.07]" : "border-dashed border-line-strong")}>
+        <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase leading-tight tracking-[0.08em] text-ink-2">
+          <Scale aria-hidden className="h-3 w-3 shrink-0" /> Contextual analysis
+        </span>
+        <span className={cn("type-title mt-2 tabular text-xl", reduction > 0 ? "text-ok-ink" : "text-ink-3")}>
+          {reduction > 0 ? `−${reduction}` : hasContext ? "available" : "none"}
+        </span>
+      </li>
+      <li className="flex min-h-[86px] flex-col justify-between rounded-[5px] border border-risk/40 bg-risk/[0.08] px-3 py-2.5">
+        <span className="text-[10.5px] font-semibold uppercase leading-tight tracking-[0.08em] text-risk-ink">Investigation priority</span>
+        <span className="mt-2 flex items-baseline gap-1.5">
+          <Equal aria-hidden className="h-4 w-4 self-center text-ink-3" />
+          <AnimatedNumber value={score.total} startOnView={false} className="type-display tabular text-3xl text-ink" />
+          <span className="text-xs text-ink-3">/100</span>
+        </span>
+      </li>
+    </ol>
   );
 }
 

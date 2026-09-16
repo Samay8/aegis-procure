@@ -406,15 +406,19 @@ export function vendorProfile(vendorId: string): VendorProfile {
   const concluded = tenders.length - cancelled - pending;
   const contractValue = sum(contracts.map((c) => c.value));
 
+  // Wins are counted in the quarter the winning bid was submitted, so a quarter never shows more wins than bids.
+  // Contract value is counted when it was awarded.
+  const wonTenders = new Set(contracts.map((c) => c.tenderId));
   const quarterly = QUARTERS.map((quarter) => {
     const qBids = bids.filter((b) => quarterOf(b.submittedAt) === quarter);
-    const qAwards = contracts.filter((c) => quarterOf(TENDER_BY_ID.get(c.tenderId)!.awardedOn ?? "") === quarter);
+    const qWins = qBids.filter((b) => wonTenders.has(b.tenderId)).length;
+    const qAwarded = contracts.filter((c) => quarterOf(TENDER_BY_ID.get(c.tenderId)!.awardedOn ?? "") === quarter);
     return {
       quarter: quarter.replace("-", " "),
       bids: qBids.length,
-      awards: qAwards.length,
-      valueCr: Number((sum(qAwards.map((c) => c.value)) / 1e7).toFixed(2)),
-      winRate: qBids.length ? Math.round((qAwards.length / qBids.length) * 100) : null,
+      awards: qWins,
+      valueCr: Number((sum(qAwarded.map((c) => c.value)) / 1e7).toFixed(2)),
+      winRate: qBids.length ? Math.round((qWins / qBids.length) * 100) : null,
     };
   });
 

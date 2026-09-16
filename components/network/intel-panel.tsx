@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { ArrowUpRight, GitCompareArrows, MousePointerClick, ShieldAlert } from "lucide-react";
 import { vendorProfile } from "@/data/analytics";
 import { casesForVendor } from "@/data/cases";

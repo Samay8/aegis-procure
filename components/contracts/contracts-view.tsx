@@ -16,7 +16,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { Checkbox, SearchInput, Select } from "@/components/ui/fields";
 import { Pagination, Stat } from "@/components/ui/misc";
-import { KeyValue, PageHeader, Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
+import { KeyValue, PageHeader, Panel, PanelHeader } from "@/components/ui/panel";
 import { PRIORITY_TONE } from "@/components/ui/priority";
 import { RecordChip } from "@/components/ui/record-chip";
 import { EmptyState } from "@/components/ui/states";

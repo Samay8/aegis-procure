@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,9 +17,23 @@ export interface LinkTab {
 
 export function LinkTabs({ items, className, layoutId = "tab-underline" }: { items: LinkTab[]; className?: string; layoutId?: string }) {
   const pathname = usePathname();
+  const navRef = useRef<HTMLElement>(null);
+
+  // Keep the active tab visible when the strip is narrower than its tabs.
+  useEffect(() => {
+    const nav = navRef.current;
+    const active = nav?.querySelector<HTMLElement>("[aria-current=page]");
+    if (!nav || !active) return;
+    const left = active.offsetLeft - nav.offsetLeft;
+    const right = left + active.offsetWidth;
+    if (left < nav.scrollLeft || right > nav.scrollLeft + nav.clientWidth) {
+      nav.scrollTo({ left: Math.max(0, left - 24), behavior: "smooth" });
+    }
+  }, [pathname]);
+
   return (
-    <nav aria-label="Sections" className={cn("no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0", className)}>
-      <ul className="flex min-w-max items-stretch gap-1 border-b border-line">
+    <nav ref={navRef} aria-label="Sections" className={cn("no-scrollbar -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0", className)}>
+      <ul className="flex min-w-max items-stretch gap-0.5 border-b border-line 2xl:gap-1">
         {items.map((item) => {
           const active = item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
@@ -28,11 +43,11 @@ export function LinkTabs({ items, className, layoutId = "tab-underline" }: { ite
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-10 items-center gap-2 px-3 text-[13px] font-medium transition-colors",
+                  "flex h-10 items-center gap-2 whitespace-nowrap px-2.5 text-[13px] font-medium transition-colors 2xl:px-3",
                   active ? "text-ink" : "text-ink-3 hover:text-ink",
                 )}
               >
-                {Icon && <Icon aria-hidden className="h-3.5 w-3.5" />}
+                {Icon && <Icon aria-hidden className="hidden h-3.5 w-3.5 2xl:block" />}
                 {item.label}
                 {item.count != null && (
                   <span className={cn("rounded-[3px] px-1 text-[11px] tabular", active ? "bg-accent/15 text-accent-ink" : "bg-panel-3 text-ink-3")}>

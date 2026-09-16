@@ -55,7 +55,7 @@ export function PageHeader({
     <div className={cn("flex flex-col gap-5 pb-6 lg:flex-row lg:items-end lg:justify-between", className)}>
       <div className="min-w-0 max-w-3xl">
         {meta && <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-ink-3">{meta}</div>}
-        <h1 className="type-display text-[30px] uppercase text-ink sm:text-[40px]">{title}</h1>
+        <h1 className="type-display text-[30px] uppercase text-ink sm:text-[40px]">{typeof title === "string" ? keepDashAttached(title) : title}</h1>
         {description && <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-2">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

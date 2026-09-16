@@ -144,7 +144,7 @@ function PriceContextStrip({ tenderId, adjusted }: { tenderId: string; adjusted:
   if (!stats.count) return null;
   return (
     <div className="rounded-[5px] border border-line p-3">
-      <ComparableStrip stats={stats} comparables={comparablesFor(tender)} current={tender} adjustedPct={adjusted} />
+      <ComparableStrip stats={stats} comparables={comparablesFor(tender)} adjustedPct={adjusted} />
     </div>
   );
 }

@@ -103,7 +103,7 @@ export function Landing() {
     <div className="min-h-screen bg-ground">
       {/* Navigation */}
       <header className="sticky top-0 z-30 border-b border-line bg-ground/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-[1320px] items-center gap-6 px-4 sm:px-8">
+        <div className="mx-auto flex h-16 max-w-[1320px] items-center gap-3 px-4 sm:gap-6 sm:px-8">
           <Link href="/" aria-label="AEGIS PROCURE home">
             <Wordmark />
           </Link>
@@ -117,7 +117,8 @@ export function Landing() {
           <div className="ml-auto flex items-center gap-3">
             <span className="hidden text-xs text-ink-3 md:inline">Synthetic demo data</span>
             <ButtonLink href="/overview" variant="primary" size="sm">
-              Open investigation center
+              <span className="sm:hidden">Open app</span>
+              <span className="hidden sm:inline">Open investigation center</span>
             </ButtonLink>
           </div>
         </div>
@@ -140,16 +141,16 @@ export function Landing() {
             <p className="mt-7 max-w-xl text-[17px] leading-relaxed text-ink-2">
               An intelligent procurement audit platform that helps investigators detect unusual patterns, connect relationships, and prioritize the cases that deserve human attention.
             </p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <ButtonLink href="/overview" variant="primary" size="lg" className="uppercase tracking-[0.06em]">
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <ButtonLink href="/overview" variant="primary" size="lg" className="px-4 text-[13px] uppercase tracking-[0.04em] sm:px-5 sm:text-sm sm:tracking-[0.06em]">
                 Open investigation center <ArrowRight className="h-4 w-4" />
               </ButtonLink>
-              <ButtonLink href="/procurement" variant="secondary" size="lg" className="uppercase tracking-[0.06em]">
+              <ButtonLink href="/procurement" variant="secondary" size="lg" className="px-4 text-[13px] uppercase tracking-[0.04em] sm:px-5 sm:text-sm sm:tracking-[0.06em]">
                 Explore procurement data
               </ButtonLink>
             </div>
           </div>
-          <div className="relative rounded-md border border-line bg-panel/70 p-3 backdrop-blur-sm sm:p-5">
+          <div className="relative rounded-md border border-line bg-panel/70 p-3 backdrop-blur-sm sm:p-5 lg:self-center">
             <div className="mb-2 flex items-center justify-between text-xs text-ink-3">
               <span>Live procurement flow · coastal maintenance program</span>
               <span className="flex items-center gap-1.5">
@@ -429,11 +430,11 @@ export function Landing() {
               <span className="block">Follow the evidence.</span>
             </span>
           </div>
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <ButtonLink href="/overview" variant="primary" size="lg" className="uppercase tracking-[0.06em]">
+          <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
+            <ButtonLink href="/overview" variant="primary" size="lg" className="px-4 text-[13px] uppercase tracking-[0.04em] sm:px-5 sm:text-sm sm:tracking-[0.06em]">
               Open investigation center <ArrowRight className="h-4 w-4" />
             </ButtonLink>
-            <ButtonLink href={`/investigations/${PRIMARY_CASE}`} variant="secondary" size="lg" className="uppercase tracking-[0.06em]">
+            <ButtonLink href={`/investigations/${PRIMARY_CASE}`} variant="secondary" size="lg" className="px-4 text-[13px] uppercase tracking-[0.04em] sm:px-5 sm:text-sm sm:tracking-[0.06em]">
               Walk through case {PRIMARY_CASE.slice(-4)}
             </ButtonLink>
           </div>

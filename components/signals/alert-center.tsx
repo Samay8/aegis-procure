@@ -75,8 +75,8 @@ function AlertDetail({ signal, onClose }: { signal: AnomalySignal; onClose: () =
           <dt className="text-[11px] text-ink-3">Department</dt>
           <dd className="mt-0.5 text-[14px] text-ink">{DEPARTMENT_BY_ID[signal.departmentId].name}</dd>
         </div>
-        {signal.metrics.slice(0, 4).map((m) => (
-          <div key={m.label} className="bg-panel-2 px-3 py-2.5">
+        {signal.metrics.slice(0, 4).map((m, i, shown) => (
+          <div key={m.label} className={cn("bg-panel-2 px-3 py-2.5", i === shown.length - 1 && shown.length % 2 === 1 && "sm:col-span-2")}>
             <dt className="text-[11px] text-ink-3">{m.label}</dt>
             <dd className="mt-0.5 text-[14px] font-semibold tabular text-ink">{m.value}</dd>
           </div>
